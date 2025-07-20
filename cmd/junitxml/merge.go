@@ -37,7 +37,9 @@ func newMergeCommand() *cli.Command {
 					slog.Error("failed to open file", "error", err, "file", filepath)
 					continue
 				}
-				defer file.Close()
+				defer func() {
+					_ = file.Close()
+				}()
 
 				report, err := junitxml.Parse(file)
 				if err != nil {
@@ -50,13 +52,15 @@ func newMergeCommand() *cli.Command {
 
 			report := junitxml.Merge(reports)
 
-			var ofile *os.File = os.Stdout
+			var ofile *os.File
 			if *output != "" {
 				var err error
 				ofile, err = os.Create(*output)
 				if err != nil {
 					return fmt.Errorf("create output file: %w", err)
 				}
+			} else {
+				ofile = os.Stdout
 			}
 
 			encoder := xml.NewEncoder(ofile)
