@@ -82,3 +82,20 @@ type SystemErr struct {
 	// XMLName xml.Name `xml:"system-err"`
 	Text string `xml:",innerxml"`
 }
+
+func newTestReport(suites []TestSuite) TestReport {
+	report := TestReport{
+		TestSuites: suites,
+	}
+	report.XMLName.Local = "testsuites"
+
+	for i := 0; i < len(report.TestSuites); i++ {
+		report.Tests += report.TestSuites[i].Tests
+		report.Failures += report.TestSuites[i].Failures
+		report.Errors += report.TestSuites[i].Errors
+		report.Skipped += report.TestSuites[i].Skipped
+		report.Time += report.TestSuites[i].Time
+	}
+
+	return report
+}

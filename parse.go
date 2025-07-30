@@ -21,7 +21,10 @@ func Parse(r io.Reader) (TestReport, error) {
 // ParseMany works like [Parse] but supports reading multiple <testsuites>
 // root elements and returns a [TestReport] for each of them.
 func ParseMany(r io.Reader) ([]TestReport, error) {
-	var reports []TestReport
+	var (
+		reports []TestReport
+		suites  []TestSuite
+	)
 
 	decoder := xml.NewDecoder(r)
 	for {
@@ -34,11 +37,22 @@ func ParseMany(r io.Reader) ([]TestReport, error) {
 
 		if elem, ok := tok.(xml.StartElement); ok {
 			var report TestReport
-			if err := decoder.DecodeElement(&report, &elem); err != nil {
+			if err := decoder.DecodeElement(&report, &elem); err == nil {
+				reports = append(reports, report)
+			} else if !errors.Is(err, io.EOF) {
+				var suite TestSuite
+				if err := decoder.DecodeElement(&suite, &elem); err != nil {
+					return nil, err
+				}
+				suites = append(suites, suite)
+			} else {
 				return nil, err
 			}
-			reports = append(reports, report)
 		}
+	}
+
+	if len(suites) > 0 {
+		reports = append(reports, newTestReport(suites))
 	}
 
 	return reports, nil
